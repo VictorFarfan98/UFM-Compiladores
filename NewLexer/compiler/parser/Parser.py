@@ -79,6 +79,47 @@ class Grammar:
 
     def syntaxField_dec(self, subtree, arbol):
         subtree = Node('Field_dec')
+
+        while self.istype(self.tokens[0]):
+            self.popToken('field_dec', subtree)   
+            if self.isexpected(self.tokens[1], "Delimiter", "["):
+                if self.isID(self.tokens[0]):
+                    self.popToken('field_dec', subtree) 
+                    if self.isexpected(self.tokens[0], "Delimiter", "["):
+                        self.popToken('field_dec', subtree) 
+                        if self.getType(self.tokens[0]) == "decimal" or self.getType(self.tokens[0]) == "hexadecimal":
+                            self.popToken('field_dec', subtree)    
+                            if self.isexpected(self.tokens[0], "Delimiter", "]"):
+                                self.popToken('field_dec', subtree)
+                                if self.isexpected(self.tokens[0], "Delimiter", ","):
+                                    self.popToken('field_dec', subtree)
+                                    continue
+                                if self.isexpected(self.tokens[0], "Delimiter", ";"):
+                                    self.popToken('field_dec', subtree)
+                                    break
+                                else:
+                                    self.printExpectedToken("['Delimiter',';']")
+                            else:
+                                self.printExpectedToken("['Delimiter', ']']")
+                        else:
+                            self.printExpectedToken("<int_literal>")
+                    else:
+                        self.printExpectedToken("['Delimiter', '[']")
+                else:
+                    self.printExpectedToken("<ID>")    
+            elif self.getType(self.tokens[0]) == "ID":
+                self.popToken('field_dec', subtree)
+                if self.isexpected(self.tokens[0], "Delimiter", ","):
+                    self.popToken('field_dec', subtree)
+                    continue
+                elif self.isexpected(self.tokens[0], "Delimiter", ";"):
+                    self.popToken('field_dec', subtree)
+                    break
+                else:
+                    self.printExpectedToken("['Delimiter',';']")
+            else:
+                self.printExpectedToken("<ID>")
+        """
         if self.istype(self.tokens[0]):
             self.popToken('field_dec', subtree)      
             while True:
@@ -107,11 +148,13 @@ class Grammar:
         else:
             self.printExpectedToken("<type>")
         subtree.parent = arbol
+        """
 
 
     def syntaxMethod_dec(self, subtree, arbol): #Could fail due to while statement  
         subtree = Node('method_dec')      
         if self.istype(self.tokens[0]) or self.isexpected(self.tokens[0], "keywords", "void"):
+            print("meth dec")
             self.popToken('method_dec', subtree)    
             if self.isID(self.tokens[0]):
                 self.popToken('method_dec', subtree)    
@@ -129,6 +172,7 @@ class Grammar:
                                     elif self.isexpected(self.tokens[0], "Delimiter", ")"):
                                         self.popToken('method_dec', subtree)    
                                         self.syntaxBlock(subtree)
+                                        break
                                     else:
                                         self.printExpectedToken("['Delimiter', ')']")
                                 else:

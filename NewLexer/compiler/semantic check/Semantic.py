@@ -12,6 +12,7 @@ class SymbolTable:
         self.tokens = []
         self.starting_values = {'int':0, 'boolean': "false"}
         self.final_tree = Parser.g.final_tree
+        self.params = {}
         with open("token.txt", 'r') as f:
             for line in f:
                 line = literal_eval(line)
@@ -19,6 +20,7 @@ class SymbolTable:
 
     def constructSymbolTable(self):
         scope = 0
+        lastmethod = ""
         for i in range(len(self.tokens)):
             if self.tokens[i][1] == "{" or self.tokens[i][1] == "(":
                 #print(self.tokens[i])
@@ -38,13 +40,21 @@ class SymbolTable:
                         #print("parameter declaration:", self.tokens[i], scope)
                         nodo = DeclarationSymbol(self.tokens[i][1], self.tokens[i+1][1], self.starting_values[self.tokens[i][1]], self.tokens[i][2], "parameter", False)
                         #nodo = DeclarationSymbol(self.tokens[i][1], self.tokens[i+1][1], starting_values[self.tokens[i][1]], self.tokens[i][2], "parameter")
-                        self.validateDuplicity(self.tokens[i+1])   
+                        self.validateDuplicity(self.tokens[i+1])
+                        
+                        temp = self.tree[lastmethod]
+                        temp.append(self.tokens[i+1][1])
+                        self.tree.update({scope:temp})
+
                         tree.InsertSymbol(nodo, scope)        
                 elif self.tokens[i+1][0] == "ID" and self.tokens[i+2][1] == "(":
                     #print("method declaration:", self.tokens[i], scope)
                     nodo = DeclarationSymbol(self.tokens[i][1], self.tokens[i+1][1], self.starting_values[self.tokens[i][1]], self.tokens[i][2], "method", False)
                     self.validateDuplicity(self.tokens[i+1])   
-                    tree.InsertSymbol(nodo, scope)
+                    tree.InsertSymbol(nodo, 1)
+                    self.params[self.tokens[i+1][1]] = []
+                    lastmethod = self.tokens[i+1][1]
+                    print(self.params)
                 elif self.tokens[i+1][0] == "ID" and (self.tokens[i+2][1] == "," or self.tokens[i+2][1] == ";" or self.tokens[i+2][1] == "["):
                     #print("var declaration:", self.tokens[i], scope)
                     diferencia = 0 #diferencia de tokens entre una declaracion de un array y de una variable global
@@ -110,6 +120,13 @@ class SymbolTable:
             for symbol in self.tree[scope]:
                 if symbol.id == identifier:                    
                     return [scope, symbol.value]
+        return None  
+
+    def LookupOperation(self, identifier): #return scope number
+        for scope in self.tree:
+            for symbol in self.tree[scope]:
+                if symbol.id == identifier:                    
+                    return symbol.op
         return None    
 
     def LookupType(self, identifier):
@@ -152,12 +169,12 @@ class SymbolTable:
                 else:
                     #print(node.name)
                     if expectedType == "int":
-                        if node.name[1].isnumeric() or node.name[1] in operators:
+                        if unicode(node.name[1], 'utf-8').isnumeric() or node.name[1] in operators:
                             operation += node.name[1]
                         else:
                             raise Exception("Invalid type found for <", expectedType, "> operation")
                     elif expectedType == "boolean":
-                        if not node.name[1].isnumeric():
+                        if not unicode(node.name[1], 'utf-8').isnumeric():
                             operation += node.name[1]
                         else:
                             raise Exception("Invalid type found for <", expectedType, "> operation")
@@ -225,12 +242,19 @@ class SymbolTable:
                                 pass
                             elif op.name[1] == "-=":
                                 pass
+            #Rule 3: method main takes no parameters
             elif node.name == "method_dec":
                 for hijo in node.children:
                     if hijo.name[1] == "main":
                         if len(node.children) != 5:
                             raise Exception('ParameterError: Main takes no arguments!')
-            
+            #Rule 5: Types of arguments in a method call must be the same as the formals
+            elif node.name == "method_call":
+                #Check if ID called is a method
+                if self.LookupOperation(node.children[0].name[1]) != "method":
+                    raise Exception(node.children[0].name[1], "is not a callable method. Near line", node.children[0].name[2])
+
+            #Rule 18: break and continue keywords must be inside a for 
             elif node.name[1] == 'continue' or node.name[1] == 'break':
                 viejos = []
                 for i in node.ancestors:
@@ -253,7 +277,7 @@ class SymbolTable:
     """
         
 class DeclarationSymbol:
-    def __init__(self, tipo, id, value, location, op, isarray, arraysize = None):
+    def __init__(self, tipo, id, value, location, op, isarray, arraysize = None, parameters = 0):
         self.id = id        
         self.type = tipo
         self.value = value
@@ -261,6 +285,7 @@ class DeclarationSymbol:
         self.op = op
         self.isarray = isarray
         self.arraysize = arraysize
+        self.parameters = parameters
         if arraysize != None and isarray == False:
             raise Exception("There can only be array size when declaring an array.")
             
@@ -271,7 +296,7 @@ class DeclarationSymbol:
         #    return "ID:", self.id, "| Valor:", self.value, "| Tipo:", self.type, "| Operation:", self.op, "| Location:", self.location
         #elif self.op == "method":
         #    return "ID:", self.id, "| Valor:", self.value, "| Tipo:", self.type, "| Operation:", self.op, "| Location:", self.location
-        return "ID:", self.id, "| Valor:", self.value, "| Tipo:", self.type, "| Operation:", self.op, "| Location:", self.location, "| isArray:", self.isarray, "| ArraySize:", self.arraysize
+        return "ID:", self.id, "| Valor:", self.value, "| Tipo:", self.type, "| Operation:", self.op, "| Location:", self.location, "| isArray:", self.isarray, "| ArraySize:", self.arraysize, "| Parameters:", self.parameters
 
 """
 class Symbol:
@@ -317,8 +342,15 @@ def validateVariable(token):
 """
 
 #print(RenderTree(Parser.g.final_tree))
-print(RenderTree(tree.final_tree))
+#print(RenderTree(tree.final_tree))
 
+
+tree.constructSymbolTable()
+tree.showTree()
+#tree.validateDuplicity()    
+tree.validateTypes()
+
+"""
 try:
     tree.constructSymbolTable()
     tree.showTree()
@@ -327,8 +359,7 @@ try:
 except Exception as e:
     print(e)
     sys.exit(0)
-
-
+"""
 
 
 #for pre, fill, node in RenderTree(Parser.g.final_tree):
