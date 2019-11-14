@@ -56,7 +56,7 @@ def type(listt, types):
 					lists[0] = 'hexadecimal'
 					lists[1] = x
 					matrix.append(lists)
-					aceptado = True
+					aceptado = True				
 				if accepts(HFA, 0, {2, 3, 4, 7, 8, 9, 1}, x) in (3, 4, 8, 9):
 					if listt[y-1] == '-':
 						x = '-' + x
@@ -261,6 +261,12 @@ for line in tofile:
 outF.close()
 
 outF = open("../semantic check/token.txt", "w")
+for line in tofile:
+	outF.write(line)
+	outF.write("\n")
+outF.close()
+
+outF = open("../irt/token.txt", "w")
 for line in tofile:
 	outF.write(line)
 	outF.write("\n")

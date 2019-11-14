@@ -1,8 +1,9 @@
 class Program
 {
     int arr[1];
+    int arr1[1];
 
-    int IF(int val)
+    int IF(int val, int val1, int val2, int val3)
     {
         boolean b;
         return (val+1);
@@ -21,6 +22,6 @@ class Program
         boolean thisfortrue;
         hola = 10+array+1;
         array = 1;
-        array[0xa] += array(hola);
+        array[0xa] += IF(i, j);
     }
 }

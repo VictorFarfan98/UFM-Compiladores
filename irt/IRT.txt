@@ -1,0 +1,9 @@
+store i 0
+label_function dad
+bl 5 2 else_label
+li v0 4
+la a0 string1
+syscall
+label endif
+label_function main
+string0: "Hello World"

@@ -16,6 +16,7 @@ class Grammar:
         self.parent = None
         self.subtree = None
         self.subparent = None
+        self.newtokens = []
         with open("token.txt", 'r') as f:
             for line in f:
                 line = literal_eval(line)
@@ -27,12 +28,16 @@ class Grammar:
     def getValue(self, token):
         return token[1]
 
+    def ignoreToken(self):
+        popped = self.tokens.pop(0)
+
     def popToken(self, nodo, padre=None):
         popped = self.tokens.pop(0)
         popped.append(nodo)
         if padre != None:
             self.child = Node(popped, parent=padre)
         self.tree.append(popped)
+        self.newtokens.append(popped)
         print("Popped:", popped)
 
     def printExpectedToken(self, expected):
@@ -102,7 +107,25 @@ class Grammar:
                             else:
                                 self.printExpectedToken("['Delimiter', ']']")
                         else:
-                            self.printExpectedToken("<int_literal>")
+                            if self.getType(self.tokens[1]) == "decimal" or self.getType(self.tokens[0]) == "hexadecimal":
+                                self.ignoreToken()
+                                if self.getType(self.tokens[0]) == "decimal" or self.getType(self.tokens[0]) == "hexadecimal":
+                                    self.popToken('field_dec', subtree)    
+                                    if self.isexpected(self.tokens[0], "Delimiter", "]"):
+                                        self.popToken('field_dec', subtree)
+                                        if self.isexpected(self.tokens[0], "Delimiter", ","):
+                                            self.popToken('field_dec', subtree)
+                                            continue
+                                        if self.isexpected(self.tokens[0], "Delimiter", ";"):
+                                            self.popToken('field_dec', subtree)
+                                            break
+                                        else:
+                                            self.printExpectedToken("['Delimiter',';']")
+                                    else:
+                                        self.printExpectedToken("['Delimiter', ']']")
+                            else:    
+                                self.printExpectedToken("<int_literal>")
+
                     else:
                         self.printExpectedToken("['Delimiter', '[']")
                 else:
@@ -319,9 +342,10 @@ class Grammar:
             self.popToken('method_call', new_tree)
             if self.isexpected(self.tokens[0], "Delimiter", "("):
                 self.popToken('method_call', new_tree)
-                if not self.isexpected(self.tokens[0], "Delimiter", ")"):
+                if not self.isexpected(self.tokens[0], "Delimiter", ")"):                    
                     self.syntaxExpr(new_tree)
-                    while self.isexpected(self.tokens[0], "Delimiter", ","):
+                    
+                    while self.isexpected(self.tokens[0], "Delimiter", ","):                        
                         self.popToken('method_call', new_tree)
                         self.syntaxExpr(new_tree)
                 if self.isexpected(self.tokens[0], "Delimiter", ")"):
@@ -391,7 +415,7 @@ class Grammar:
             #is method_call                       
             self.syntaxMethod_call(new_tree)
         
-        elif (self.isID(self.tokens[0]) and self.isexpected(self.tokens[1], "Delimiter", ")")) or (self.isID(self.tokens[0]) and self.isexpected(self.tokens[1], "Delimiter", "[")):
+        elif (self.isID(self.tokens[0]) and self.isexpected(self.tokens[1], "Delimiter", ",")) or (self.isID(self.tokens[0]) and self.isexpected(self.tokens[1], "Delimiter", ")")) or (self.isID(self.tokens[0]) and self.isexpected(self.tokens[1], "Delimiter", "[")):
             #is location
             print("is location")
             self.syntaxLocation(new_tree)
@@ -504,10 +528,22 @@ g = Grammar()
 
 g.syntaxProgram()
 #print(RenderTree(g.final_tree))
-
+tofile = g.newtokens
 
 for pre, fill, node in RenderTree(g.final_tree):
     print("%s%s" % (pre, node.name))
+
+outF = open("../semantic check/token.txt", "w")
+for line in tofile:
+	outF.write(str(line))
+	outF.write("\n")
+outF.close()
+
+outF = open("../irt/token.txt", "w")
+for line in tofile:
+	outF.write(str(line))
+	outF.write("\n")
+outF.close()
 
 
 #DotExporter(g.final_tree).to_dotfile("ast.dot")

@@ -5,6 +5,7 @@ from anytree import Node, RenderTree, PostOrderIter, PreOrderIter
 import anytree
 import Parser
 
+
 class SymbolTable:
     def __init__(self):
         self.tree = {}
@@ -33,37 +34,54 @@ class SymbolTable:
                 if self.tokens[i+1][0] == "ID" and self.tokens[i-1][1] == "(":
                     #print("parameter declaration:", self.tokens[i], scope)
                     nodo = DeclarationSymbol(self.tokens[i][1], self.tokens[i+1][1], self.starting_values[self.tokens[i][1]], self.tokens[i][2], "parameter", False)
+                    #print("parameter declaration")
                     self.validateDuplicity(self.tokens[i+1])   
                     tree.InsertSymbol(nodo, scope)
+
+                    temp = self.params[lastmethod]
+                    temp.append(self.tokens[i+1][1])
+                    self.params.update({lastmethod:temp})
+                    
                     while self.tokens[i+2][0] == "Delimiter" and self.tokens[i+2][1] == ",":
                         i += 3                
                         #print("parameter declaration:", self.tokens[i], scope)
                         nodo = DeclarationSymbol(self.tokens[i][1], self.tokens[i+1][1], self.starting_values[self.tokens[i][1]], self.tokens[i][2], "parameter", False)
                         #nodo = DeclarationSymbol(self.tokens[i][1], self.tokens[i+1][1], starting_values[self.tokens[i][1]], self.tokens[i][2], "parameter")
+                        #print("Loop parameter declaration")
                         self.validateDuplicity(self.tokens[i+1])
-                        
-                        temp = self.tree[lastmethod]
+                        """
+                        print(self.tree[scope])
+                        temp = self.tree[scope][lastmethod]
                         temp.append(self.tokens[i+1][1])
                         self.tree.update({scope:temp})
+                        """
+
+                        temp = self.params[lastmethod]
+                        temp.append(self.tokens[i+1][1])
+                        self.params.update({lastmethod:temp})
 
                         tree.InsertSymbol(nodo, scope)        
                 elif self.tokens[i+1][0] == "ID" and self.tokens[i+2][1] == "(":
                     #print("method declaration:", self.tokens[i], scope)
                     nodo = DeclarationSymbol(self.tokens[i][1], self.tokens[i+1][1], self.starting_values[self.tokens[i][1]], self.tokens[i][2], "method", False)
+                    #print("method declaration")
                     self.validateDuplicity(self.tokens[i+1])   
                     tree.InsertSymbol(nodo, 1)
                     self.params[self.tokens[i+1][1]] = []
                     lastmethod = self.tokens[i+1][1]
-                    print(self.params)
-                elif self.tokens[i+1][0] == "ID" and (self.tokens[i+2][1] == "," or self.tokens[i+2][1] == ";" or self.tokens[i+2][1] == "["):
+                    #print(self.params)
+                elif self.tokens[i+1][0] == "ID" and (self.tokens[i+2][1] == "," or self.tokens[i+2][1] == ";" or self.tokens[i+2][1] == "[") and self.tokens[i][3] != "method_dec":
                     #print("var declaration:", self.tokens[i], scope)
                     diferencia = 0 #diferencia de tokens entre una declaracion de un array y de una variable global
                     if self.tokens[i+2][1] == "[":
                         nodo = DeclarationSymbol(self.tokens[i][1], self.tokens[i+1][1], self.starting_values[self.tokens[i][1]], self.tokens[i][2], "declaration", True, self.tokens[i+3][1])   
+                        if int(nodo.arraysize) < 1:
+                            raise Exception("Array size must be greater than 1. Near line", nodo.location)
                         diferencia = 3
                     else:
                         nodo = DeclarationSymbol(self.tokens[i][1], self.tokens[i+1][1], self.starting_values[self.tokens[i][1]], self.tokens[i][2], "declaration", False)
                         diferencia = 0
+                    #print("var declaration")
                     self.validateDuplicity(self.tokens[i+1])   
                     tree.InsertSymbol(nodo, scope)
                     tipo = self.tokens[i][1]
@@ -78,6 +96,7 @@ class SymbolTable:
                             nodo = DeclarationSymbol(tipo, self.tokens[i][1], self.starting_values[tipo], self.tokens[i][2], "declaration", False)
                             diferencia = 0
                         #nodo = DeclarationSymbol(tipo, self.tokens[i][1], self.starting_values[tipo], self.tokens[i][2], "declaration", False)
+                        #print("loop var declaration")
                         self.validateDuplicity(self.tokens[i])   
                         tree.InsertSymbol(nodo, scope)
                 
@@ -116,6 +135,8 @@ class SymbolTable:
             self.identifiers.append([scope, symbol.id])
 
     def Lookup(self, identifier): #return scope number
+        #print("Looking for:", identifier)
+        #self.showTree()        
         for scope in self.tree:
             for symbol in self.tree[scope]:
                 if symbol.id == identifier:                    
@@ -169,12 +190,12 @@ class SymbolTable:
                 else:
                     #print(node.name)
                     if expectedType == "int":
-                        if unicode(node.name[1], 'utf-8').isnumeric() or node.name[1] in operators:
+                        if str(node.name[1]).isnumeric() or node.name[1] in operators:
                             operation += node.name[1]
                         else:
                             raise Exception("Invalid type found for <", expectedType, "> operation")
                     elif expectedType == "boolean":
-                        if not unicode(node.name[1], 'utf-8').isnumeric():
+                        if not str(node.name[1]).isnumeric():
                             operation += node.name[1]
                         else:
                             raise Exception("Invalid type found for <", expectedType, "> operation")
@@ -253,6 +274,21 @@ class SymbolTable:
                 #Check if ID called is a method
                 if self.LookupOperation(node.children[0].name[1]) != "method":
                     raise Exception(node.children[0].name[1], "is not a callable method. Near line", node.children[0].name[2])
+                else:
+                    actualparams = []
+                    for child in node.children:
+                        if child.name == "expr":
+                            for childs in PostOrderIter(child):
+                                if childs.name[0] == "ID":
+                                    actualparams.append(childs.name[1])
+                    print(actualparams)
+                    print(len(v)
+
+                    if len(actualparams) != len(self.params[node.children[0].name[1]]):
+                        raise Exception("Missing parameters in method call <"+str(node.children[0].name[1])+">. Near line", node.children[0].name[2])
+                    for i in range(len(actualparams)):
+                        if self.LookupType(actualparams[i]) != :
+                            raise Exception("Invalid type in parameter", actualparams[i], "Near line", node.children[0].name[2])
 
             #Rule 18: break and continue keywords must be inside a for 
             elif node.name[1] == 'continue' or node.name[1] == 'break':
@@ -347,6 +383,7 @@ def validateVariable(token):
 
 tree.constructSymbolTable()
 tree.showTree()
+print(tree.params)
 #tree.validateDuplicity()    
 tree.validateTypes()
 

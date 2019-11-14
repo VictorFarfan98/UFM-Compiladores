@@ -98,7 +98,16 @@ elif args["target"] == "semantic":
     else:
         subprocess.call(["python", "Scanner.py", args["file"]], cwd="scanner")             
         subprocess.call(["python", "Semantic.py", ], cwd="semantic check")     
-        
+elif args["target"] == "irt":
+    if args["debug"] != None:
+        print("")
+        print("debug argument not accepted for -target irt")
+        print()
+    else:
+        subprocess.call(["python", "Scanner.py", args["file"]], cwd="scanner")             
+        subprocess.call(["python", "Semantic.py", ], cwd="semantic check")    
+        subprocess.call(["python", "irt.py", ], cwd="irt")
+
 else:
     print("")
     print("Bad argument for flag -target")
