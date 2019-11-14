@@ -11,7 +11,7 @@ class SymbolTable:
         self.tree = {}
         self.identifiers = []
         self.tokens = []
-        self.starting_values = {'int':0, 'boolean': "false"}
+        self.starting_values = {'int':0, 'boolean': "false", 'void':None}
         self.final_tree = Parser.g.final_tree
         self.params = {}
         with open("token.txt", 'r') as f:
@@ -29,7 +29,7 @@ class SymbolTable:
                 tree.PushScope(scope)
             elif self.tokens[i][1] == ")":
                 scope -= 1
-            elif self.tokens[i][1] == "int" or self.tokens[i][1] == "boolean": 
+            elif self.tokens[i][1] == "int" or self.tokens[i][1] == "boolean" or self.tokens[i][1] == "void": 
                 #self.validateDuplicity(self.tokens[i+1])       
                 if self.tokens[i+1][0] == "ID" and self.tokens[i-1][1] == "(":
                     #print("parameter declaration:", self.tokens[i], scope)
@@ -272,9 +272,11 @@ class SymbolTable:
             #Rule 5: Types of arguments in a method call must be the same as the formals
             elif node.name == "method_call":
                 #Check if ID called is a method
-                if self.LookupOperation(node.children[0].name[1]) != "method":
+                if self.LookupOperation(node.children[0].name[1]) != "method" and self.LookupOperation(node.children[0].name[1]) == "callout":
                     raise Exception(node.children[0].name[1], "is not a callable method. Near line", node.children[0].name[2])
                 else:
+                    if self.LookupType(node.children[0].name[1]) == "void" and node.parent.name == "expr":
+                        raise Exception("Method "+node.children[0].name[1]+ "  does not return any value. Near line", node.children[0].name[2])
                     actualparams = []
                     for child in node.children:
                         if child.name == "expr":
@@ -284,7 +286,7 @@ class SymbolTable:
                     print(actualparams)
                     #print(len(v))
 
-                    if len(actualparams) != len(self.params[node.children[0].name[1]]):
+                    if self.LookupOperation(node.children[0].name[1]) == "callout" and len(actualparams) != len(self.params[node.children[0].name[1]]):
                         raise Exception("Missing parameters in method call <"+str(node.children[0].name[1])+">. Near line", node.children[0].name[2])
                     for i in range(len(actualparams)):
                         if self.LookupType(actualparams[i]) != self.LookupType(self.params[node.children[0].name[1]][i]):

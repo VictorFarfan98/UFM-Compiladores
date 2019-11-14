@@ -3,25 +3,28 @@ class Program
     int arr[1];
     int arr1[1];
 
-    int IF(int val, boolean val1)
+    int IF(int val, int val1)
     {
         boolean b;
         return (val+1);
     }
 
-    int newmethod(int new)
+    void newmethod()
     {
-        return (new);
+        int x;
+        
     }
 
     void main()
     {
         int ern3t, i, j;
         int array;
-        int hola;   
+        int hola;  
         boolean thisfortrue;
+
+        callout("\tThis is my program!\n");
         hola = 10+array+1;
         array = 1;
-        array[0xa] += IF(i, j);
+        array[0xa] += IF();
     }
 }
