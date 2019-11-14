@@ -3,7 +3,7 @@ class Program
     int arr[1];
     int arr1[1];
 
-    int IF(int val, int val1, int val2, int val3)
+    int IF(int val, boolean val1)
     {
         boolean b;
         return (val+1);

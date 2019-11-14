@@ -282,13 +282,13 @@ class SymbolTable:
                                 if childs.name[0] == "ID":
                                     actualparams.append(childs.name[1])
                     print(actualparams)
-                    print(len(v)
+                    #print(len(v))
 
                     if len(actualparams) != len(self.params[node.children[0].name[1]]):
                         raise Exception("Missing parameters in method call <"+str(node.children[0].name[1])+">. Near line", node.children[0].name[2])
                     for i in range(len(actualparams)):
-                        if self.LookupType(actualparams[i]) != :
-                            raise Exception("Invalid type in parameter", actualparams[i], "Near line", node.children[0].name[2])
+                        if self.LookupType(actualparams[i]) != self.LookupType(self.params[node.children[0].name[1]][i]):
+                            raise Exception("Invalid type in parameter", actualparams[i], "expected",self.LookupType(actualparams[i]) ,"Near line", node.children[0].name[2])
 
             #Rule 18: break and continue keywords must be inside a for 
             elif node.name[1] == 'continue' or node.name[1] == 'break':
