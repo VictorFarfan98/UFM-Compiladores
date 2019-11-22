@@ -1,6 +1,6 @@
 class Program
 {
-    int arr[1];
+    int arr[5];
     int arr1[1];
 
     int IF(int val, int val1)
@@ -9,10 +9,10 @@ class Program
         return (val+1);
     }
 
-    void newmethod()
+    int newmethod()
     {
         int x;
-        
+        return x;
     }
 
     void main()
@@ -22,9 +22,11 @@ class Program
         int hola;  
         boolean thisfortrue;
 
+        arr[2] = 2;
         callout("\tThis is my program!\n");
         hola = 10+array+1;
         array = 1;
         array[0xa] += IF();
+        a = 1;
     }
 }

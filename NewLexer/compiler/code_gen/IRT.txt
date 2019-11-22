@@ -1,0 +1,3 @@
+print "\tThis is my program!\n"
+label_function main
+string0: .asciiz "\tThis is my program!\n"

@@ -1,5 +1,5 @@
-from ast import literal_eval
-import sys
+#from ast import eval
+import sys, os
 sys.path.insert(0, '../parser/')
 import anytree
 from anytree import Node, RenderTree, PostOrderIter, PreOrderIter, LevelOrderIter
@@ -40,9 +40,14 @@ class IRT(object):
     
     def iterate(self):
         current = self.head
+        
+        if os.path.exists("../code_gen/IRT.txt"):
+            os.remove("../code_gen/IRT.txt")
         while current:
+            with open('../code_gen/IRT.txt', 'a+') as f:
+                f.write(current.data+'\n')
             print(current.data)
-            print('   ↓    ')
+            #print('   ↓    ')
             current = current.get_next()
 
 def pseudo_arith_logic(op, var1, var2):
@@ -112,7 +117,6 @@ def getExprValue(exprNode, expectedType = None):
                             operation += node.name[1]
                         else:
                             raise Exception("Invalid type found for <", expectedType, "> operation")
-        print(type(operation), operation)
         return operation
 
 Head = None
@@ -124,6 +128,7 @@ instructions = []
 for_labels = []
 for_label_counter = 0
 else_labels = []
+strings = []
 else_label_counter = 0
 block_index = None
 post = [node for node in PostOrderIter(Parser.g.final_tree)]
@@ -138,7 +143,6 @@ for i in range(len(post)):
         for j in post[i].children:
             if j.name[0] == 'keywords':
                 keyword = j.name[1]
-                
             if j.name[0] == 'ID':
                 ID = j.name[1]
                 mem_pos += 4
@@ -147,24 +151,57 @@ for i in range(len(post)):
                 pass
             else:
                 RAM[ID] = [mem_pos, 4]
+    if post[i].name =='method_dec':
+        instructions.append(pseudo_create_label('label_function', post[i].children[1].name[1]))
+        args = len(post[i].children[3:-2])
+        if len(post[i].children[3:-2]) == 2:
+            instructions.append(pseudo_arith_logic('addi', 'sp', -4))
+            instructions.append(pseudo_load_store('store', 'a0', '4(sp)'))
+            instructions.append(pseudo_load_store('store', 'ra', '0(sp)'))
+        if len(post[i].children[3:-2]) == 5:
+            instructions.append(pseudo_arith_logic('addi', 'sp', -8))
+            instructions.append(pseudo_load_store('store', 'a0', '8(sp)'))
+            instructions.append(pseudo_load_store('store', 'a1', '4(sp)'))
+            instructions.append(pseudo_load_store('store', 'ra', '0(sp)'))
+        if len(post[i].children[3:-2]) == 8:
+            instructions.append(pseudo_arith_logic('addi', 'sp', -12))
+            instructions.append(pseudo_load_store('store', 'a0', '12(sp)'))
+            instructions.append(pseudo_load_store('store', 'a1', '8(sp)'))
+            instructions.append(pseudo_load_store('store', 'a2', '4(sp)'))
+            instructions.append(pseudo_load_store('store', 'ra', '0(sp)'))
+        
+        if len(post[i].children[3:-2]) == 11:
+            instructions.append(pseudo_arith_logic('addi', 'sp', -16))
+            instructions.append(pseudo_load_store('store', 'a0', '16(sp)'))
+            instructions.append(pseudo_load_store('store', 'a1', '12(sp)'))
+            instructions.append(pseudo_load_store('store', 'a2', '8(sp)'))
+            instructions.append(pseudo_load_store('store','a3', '4(sp)'))
+            instructions.append(pseudo_load_store('store', 'ra', '0(sp)'))
+
+
 
     '''if post[i].name[1] == 'for':
         var1 = post[i].parent.children[1].name[1]
         var2 = literal_eval(getExprValue(post[i].parent.children[3], 'int'))
         var3 = post[i].parent.children[5].children[0].name[1]
         var4 = literal_eval(getExprValue(post[i].parent.children[5].children[2], 'int'))
+
         if post[i].parent.children[5].children[1].name[1] == '<':
             inst.insert(pseudo_branch('bl', var3, var4, 'label'))
             tf[post[i].parent.children[5].children[1].name[2]-1][0] = True
+
         if post[i].parent.children[5].children[1].name[1] == '>':
             inst.insert(pseudo_branch('bg', var3, var4, 'label'))
             tf[post[i].parent.children[5].children[1].name[2]-1][0] = True
+
         if post[i].parent.children[5].children[1].name[1] == '>=':
             inst.insert(pseudo_branch('bge', var3, var4, 'label'))
             tf[post[i].parent.children[5].children[1].name[2]-1][0] = True
+
         if post[i].parent.children[5].children[1].name[1] == '<=':
             inst.insert(pseudo_branch('ble', var3, var4, 'label'))
             tf[post[i].parent.children[5].children[1].name[2]-1][0] = True
+
         inst.insert(pseudo_load_store('load', var1, var2))'''
     
     if post[i].name[1] == 'for':
@@ -174,42 +211,45 @@ for i in range(len(post)):
 
     if post[i].name[1] == '<':
         var1 = leftsibling(post[i]).name[1]
-        var2 = literal_eval(getExprValue(rightsibling(post[i]), 'int'))
+        var2 = eval(getExprValue(rightsibling(post[i]), 'int'))
         instructions.append(pseudo_branch('bg', var1, var2, for_labels[0]))
 
     if post[i].name[1] == '<=':
         var1 = leftsibling(post[i]).name[1]
-        var2 = literal_eval(getExprValue(rightsibling(post[i]), 'int'))
-        instructions.append(pseudo_branch('bge', var1, var2, for_labels[0]))
+        var2 = eval(getExprValue(rightsibling(post[i]), 'int'))
+        instructions.append(pseudo_branch('bge', var1, var2, 'else_label'))
 
     if post[i].name[1] == '>':
         var1 = leftsibling(post[i]).name[1]
-        var2 = literal_eval(getExprValue(rightsibling(post[i]), 'int'))
-        instructions.append(pseudo_branch('bl', var1, var2, for_labels[0]))
+        var2 = eval(getExprValue(rightsibling(post[i]), 'int'))
+        instructions.append(pseudo_branch('bl', var1, var2, 'else_label'))
         
     if post[i].name[1] == '>=':
         var1 = leftsibling(post[i]).name[1]
-        var2 = literal_eval(getExprValue(rightsibling(post[i]), 'int'))
-        instructions.append(pseudo_branch('ble', var1, var2, for_labels[0]))
+        var2 = eval(getExprValue(rightsibling(post[i]), 'int'))
+        instructions.append(pseudo_branch('ble', var1, var2, 'else_label'))
 
     if post[i].name[1] == '=':
-        var1 = leftsibling(post[i]).name[1]
-        var2 = literal_eval(getExprValue(rightsibling(post[i]), 'int'))
+        if leftsibling(post[i]).name == 'location':
+            var1 = leftsibling(post[i]).children[0].name[1]
+        else :
+            var1 = leftsibling(post[i]).name[1]
+        var2 = eval(getExprValue(rightsibling(post[i]), 'int'))
         instructions.append(pseudo_load_store('load', var1, var2))
 
     if post[i].name[1] == '+=':
         var1 = leftsibling(post[i]).children[0].name[1]
-        var2 = literal_eval(getExprValue(rightsibling(post[i]), 'int'))
+        var2 = eval(getExprValue(rightsibling(post[i]), 'int'))
         instructions.append(pseudo_arith_logic('add', var1, var2))
     
     if post[i].name[1] == '-=':
         var1 = leftsibling(post[i]).children[0].name[1]
-        var2 = literal_eval(getExprValue(rightsibling(post[i]), 'int'))
+        var2 = eval(getExprValue(rightsibling(post[i]), 'int'))
         instructions.append(pseudo_arith_logic('sub', var1, var2))
     
     if post[i].name[1] == '==':
         var1 = leftsibling(post[i]).name[1]
-        var2 = literal_eval(getExprValue(rightsibling(post[i]), 'int'))
+        var2 = eval(getExprValue(rightsibling(post[i]), 'int'))
         if len(else_labels) == 0:
             label = 'endif'
         else:
@@ -218,7 +258,7 @@ for i in range(len(post)):
 
     if post[i].name[1] == '!=':
         var1 = leftsibling(post[i]).name[1]
-        var2 = literal_eval(getExprValue(rightsibling(post[i]), 'int'))
+        var2 = eval(getExprValue(rightsibling(post[i]), 'int'))
         if len(else_labels) == 0:
             label = 'endif'
         else:
@@ -229,13 +269,13 @@ for i in range(len(post)):
         instructions.append(pseudo_create_label('label', 'else'+str(else_label_counter)))
     
     if post[i].name[1] == '||':
-        var1 = literal_eval(getExprValue(leftsibling(post[i]), 'int'))
-        var2 = literal_eval(getExprValue(rightsibling(post[i]), 'int'))
+        var1 = eval(getExprValue(leftsibling(post[i]), 'int'))
+        var2 = eval(getExprValue(rightsibling(post[i]), 'int'))
         instructions.append(pseudo_arith_logic('or', var1, var2))
 
     if post[i].name[1] == '&&':
-        var1 = literal_eval(getExprValue(leftsibling(post[i]), 'int'))
-        var2 = literal_eval(getExprValue(rightsibling(post[i]), 'int'))
+        var1 = eval(getExprValue(leftsibling(post[i]), 'int'))
+        var2 = eval(getExprValue(rightsibling(post[i]), 'int'))
         instructions.append(pseudo_arith_logic('and', var1, var2))
     
     if post[i].name[1] == 'for':
@@ -252,16 +292,57 @@ for i in range(len(post)):
                         instructions.append(pseudo_jump('j', 'for_label'))
                         instructions.append(pseudo_create_label('label', 'endfor'))
             elif x.name[1] == 'if':
-                for g in post[i].children:
-                    if g.name[1] == '}':
-                        instructions.append(pseudo_create_label('label', 'endif'))
+                if post[i].children[-1].name[1] == '}':
+                    instructions.append(pseudo_create_label('label', 'endif'))
+                #for g in post[i].children:
+                 #   if g.name[1] == '}':
+                  #      instructions.append(pseudo_create_label('label', 'endif'))
     
     if post[i].name[1] == 'break':
         instructions.append(pseudo_jump('j', 'endfor_label'))
+    
+    if post[i].name[1] == 'callout':
+        strings.append(rightsibling(rightsibling(post[i])).name[1])
+        instructions.append(pseudo_create_label('print', strings[0]))
+
+
+    if post[i].name[1] == 'return':
+        var1 = eval(getExprValue(rightsibling(post[i]), 'int'))
+        if args == 2:
+            instructions.append(pseudo_arith_logic('addi', 'sp', -4))
+            instructions.append(pseudo_load_store('load', 'a0', '4(sp)'))
+            instructions.append(pseudo_load_store('load', 'ra', '0(sp)'))
+        if args == 5:
+            instructions.append(pseudo_arith_logic('addi', 'sp', -8))
+            instructions.append(pseudo_load_store('load', 'a0', '8(sp)'))
+            instructions.append(pseudo_load_store('load', 'a1', '4(sp)'))
+            instructions.append(pseudo_load_store('load', 'ra', '0(sp)'))
+        if args == 8:
+            instructions.append(pseudo_arith_logic('addi', 'sp', -12))
+            instructions.append(pseudo_load_store('load', 'a0', '12(sp)'))
+            instructions.append(pseudo_load_store('load', 'a1', '8(sp)'))
+            instructions.append(pseudo_load_store('load', 'a2', '4(sp)'))
+            instructions.append(pseudo_load_store('load', 'ra', '0(sp)'))
+        
+        if args == 11:
+            instructions.append(pseudo_arith_logic('addi', 'sp', -16))
+            instructions.append(pseudo_load_store('load', 'a0', '16(sp)'))
+            instructions.append(pseudo_load_store('load', 'a1', '12(sp)'))
+            instructions.append(pseudo_load_store('load', 'a2', '8(sp)'))
+            instructions.append(pseudo_load_store('load','a3', '4(sp)'))
+            instructions.append(pseudo_load_store('load', 'ra', '0(sp)'))
+            
+        instructions.append(pseudo_load_store('load', 't8', var1)) #t8 es el registro de returns
+        instructions.append(pseudo_jump('j', 'ra'))
     
 for g in range(len(instructions)-1, -1, -1):
     inst.insert(instructions[g])
 
 inst.iterate()
-'''for i in post:
-    print(i.name)'''
+with open('../code_gen/IRT.txt', 'a+') as f:
+    for i in range(len(strings)):
+        f.write('string'+str(i)+': .asciiz '+strings[i])
+'''with open('IRT.txt', 'w') as f:
+    f.write('.data \n')
+    for x in range(len(strings)):
+        f.write('   string'+str(x)+': '+ '.asciiz ' + strings[0])'''

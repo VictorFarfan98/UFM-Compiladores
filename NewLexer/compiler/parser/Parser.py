@@ -415,7 +415,7 @@ class Grammar:
             #is method_call                       
             self.syntaxMethod_call(new_tree)
         
-        elif (self.isID(self.tokens[0]) and self.isexpected(self.tokens[1], "Delimiter", ",")) or (self.isID(self.tokens[0]) and self.isexpected(self.tokens[1], "Delimiter", ")")) or (self.isID(self.tokens[0]) and self.isexpected(self.tokens[1], "Delimiter", "[")):
+        elif (self.isID(self.tokens[0]) and self.isexpected(self.tokens[1], "Delimiter", ";")) or (self.isID(self.tokens[0]) and self.isexpected(self.tokens[1], "Delimiter", ",")) or (self.isID(self.tokens[0]) and self.isexpected(self.tokens[1], "Delimiter", ")")) or (self.isID(self.tokens[0]) and self.isexpected(self.tokens[1], "Delimiter", "[")):
             #is location
             print("is location")
             self.syntaxLocation(new_tree)

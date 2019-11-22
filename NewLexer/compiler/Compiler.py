@@ -108,6 +108,17 @@ elif args["target"] == "irt":
         subprocess.call(["python", "Semantic.py", ], cwd="semantic check")    
         subprocess.call(["python", "irt.py", ], cwd="irt")
 
+elif args["target"] == "codegen":
+    if args["debug"] != None:
+        print("")
+        print("debug argument not accepted for -target codegen")
+        print()
+    else:
+        subprocess.call(["python", "Scanner.py", args["file"]], cwd="scanner")             
+        subprocess.call(["python", "Semantic.py", ], cwd="semantic check")    
+        subprocess.call(["python", "irt.py", ], cwd="irt")
+        subprocess.call(["python", "code_gen.py", ], cwd="code_gen")
+
 else:
     print("")
     print("Bad argument for flag -target")

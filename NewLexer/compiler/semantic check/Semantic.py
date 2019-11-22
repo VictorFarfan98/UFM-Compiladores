@@ -150,6 +150,13 @@ class SymbolTable:
                     return symbol.op
         return None    
 
+    def LookupisArray(self, identifier):
+        for scope in self.tree:
+            for symbol in self.tree[scope]:
+                if symbol.id == identifier:                    
+                    return symbol.isarray
+        return None
+
     def LookupType(self, identifier):
         for scope in self.tree:
             for symbol in self.tree[scope]:
@@ -300,9 +307,41 @@ class SymbolTable:
                         for j in i.children:
                             viejos.append(j.name[1])
                 if 'for' not in viejos:
-                    raise SyntaxError('SyntaxError: BREAK or CONTINUE not in FOR statement')
-          
-        
+                    raise SyntaxError('SyntaxError: BREAK or CONTINUE not in FOR statement Near line', node.name[2])
+
+            #Rule 7: return can only appear in body method that allows it
+            elif node.name[1] == "return":
+                viejos = []
+                for i in node.ancestors:
+                    if i.name == "method_dec":
+                        #print(i.children[0].name[2])                        
+                        if i.children[0].name[1] == "void":
+                            raise SyntaxError("Statement <return> can't appear in the body of a void method. Near line", node.name[2])
+                        elif i.children[0].name[1] == "int":
+                            try:
+                                self.getExprValue(anytree.util.rightsibling(node), "int")
+                            except:
+                                raise ValueError("Return statement must have type <int>. Near line", node.name[2])
+                        elif i.children[0].name[1] == "boolean":
+                            try:
+                                self.getExprValue(anytree.util.rightsibling(node), "boolean")
+                            except:
+                                raise ValueError("Return statement must have type <boolean>. Near line", node.name[2])
+            #Rule 10. Arrays use
+            elif node.name == "location":
+                if node.parent.name == "statement":
+                    if len(node.children) > 1: #Is array use
+                        if self.LookupisArray(node.children[0].name[1]) == False:
+                            raise ValueError("Variable " +node.children[0].name[1]+ " can't be used as a array")
+
+                        try:
+                            print("look this", anytree.util.rightsibling(node).name)
+                            #self.getExprValue(anytree.util.rightsibling(node), "int")
+                            self.getExprValue(node.children[2], "int")
+                        except:
+                            raise ValueError("Array position must have type <int>. Near line", node.children[0].name[2])
+                    else: #is normal variable use   
+                        pass
                     
 
     """
